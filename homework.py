@@ -48,7 +48,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """API запрос с преобразованием в JSON формат"""
+    """API запрос с преобразованием в JSON формат."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -85,7 +85,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Получение имя / статус домашней работы"""
+    """Получение имя / статус домашней работы."""
     if homework != []:
         if 'homework_name' not in homework.keys():
             raise KeyError('Нет ключа: "homework_name"')
