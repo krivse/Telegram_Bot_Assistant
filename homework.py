@@ -38,7 +38,7 @@ logger.addHandler(fileHandler)
 
 
 def send_message(bot, message):
-    """Отправка БОТОМ любого сообщения"""
+    """Отправка БОТОМ любого сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info(f'Бот отправил сообщение: {message}')
@@ -88,8 +88,10 @@ def parse_status(homework):
     """Получение имя / статус домашней работы."""
     if homework != []:
         if 'homework_name' not in homework.keys():
+            logger.error('Нет ключа: "homework_name"')
             raise KeyError('Нет ключа: "homework_name"')
         elif 'status' not in homework.keys():
+            logger.error('Нет ключа: "status"')
             raise KeyError('Нет ключа: "status"')
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
