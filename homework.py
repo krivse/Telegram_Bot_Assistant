@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 import time
 from exceptions import APIException, JSONException, ParsingException
-from exceptions import TokenException
+from exceptions import TokenException, SendMessageException
 import logging
 import sys
 
@@ -25,7 +25,7 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 fileHandler = logging.FileHandler("logfile.log")
 streamHandler = logging.StreamHandler(sys.stdout)
 logger.setLevel(logging.INFO)
@@ -44,7 +44,7 @@ def send_message(bot, message):
         logger.info(f'Бот отправил сообщение: {message}')
     except telegram.error.TelegramError as error:
         logger.error(f'Сообщение не было отправлено: {error}')
-        raise (f'Сообщение не было отправлено: {error}')
+        raise SendMessageException(f'Сообщение не было отправлено: {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -66,15 +66,6 @@ def check_response(response):
         logger.info(
             f'JSON формат имеет правильный тип данных: {type(response)}')
         homework = response.get('homeworks')
-        if isinstance(homework, list):
-            logger.info(
-                f'Правильное значение ключа словаря "list": {type(homework)}')
-            return homework
-        else:
-            logger.error(
-                f'Ожидается тип данных "list": {type(homework)}')
-            raise JSONException(
-                f'Ожидается тип данных "list": {type(homework)}')
     elif response is None:
         logger.error(f'Ответ от API пустой: {response}')
     elif not isinstance(response, dict):
@@ -82,19 +73,28 @@ def check_response(response):
             f'JSON формат имеет неправильный тип данных: {type(response)}')
         raise TypeError(
             f'JSON формат имеет неправильный тип данных: {type(response)}')
+    if isinstance(homework, list):
+        logger.info(
+            f'Правильное значение ключа словаря "list": {type(homework)}')
+        return homework
+    elif not isinstance(homework, list):
+        logger.error(
+            f'Ожидается тип данных "list": {type(homework)}')
+        raise JSONException(
+            f'Ожидается тип данных "list": {type(homework)}')
 
 
 def parse_status(homework):
     """Получение имя / статус домашней работы."""
     if homework != []:
-        if 'homework_name' not in homework.keys():
+        if "homework_name" not in homework.keys():
             logger.error('Нет ключа: "homework_name"')
             raise KeyError('Нет ключа: "homework_name"')
-        elif 'status' not in homework.keys():
+        elif "status" not in homework.keys():
             logger.error('Нет ключа: "status"')
             raise KeyError('Нет ключа: "status"')
-        homework_name = homework.get('homework_name')
-        homework_status = homework.get('status')
+        homework_name = homework.get("homework_name")
+        homework_status = homework.get("status")
         if homework_status in HOMEWORK_STATUSES.keys():
             verdict = HOMEWORK_STATUSES.get(homework_status)
             logger.info(
@@ -122,16 +122,13 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверка доступности ключей."""
-    if (TELEGRAM_CHAT_ID is None
-       or PRACTICUM_TOKEN is None
-       or TELEGRAM_TOKEN is None):
-        return False
-    return True
+    if all([TELEGRAM_CHAT_ID, PRACTICUM_TOKEN, TELEGRAM_TOKEN]):
+        return True
 
 
 def main():
     """Основная логика работы бота."""
-    if check_tokens() is not True:
+    if not check_tokens():
         raise logger.critical(TokenException(
             'Хранилище ключей недоступно / ключ недоступен. '
             'Программа принудительно остановлена'))
@@ -141,7 +138,7 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homework = check_response(response)
-            message = parse_status(homework[0])
+            message = parse_status(homework)
             send_message(bot, message)
             current_timestamp = response.get('current_date')
         except Exception as error:
