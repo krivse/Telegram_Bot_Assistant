@@ -52,12 +52,13 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code == HTTPStatus.OK:
-        logger.info(f'Успешный запрос к API: {response.status_code}')
-        return response.json()
-    else:
+    try:
+        if response == HTTPStatus.OK:
+            logger.info(f'Успешный запрос к API: {response.status_code}')
+            return response.json()
+    except Exception as error:
         logger.error(f'Неуспешный запрос с API: {response.status_code}')
-        raise APIException(f'Неуспешный запрос к API: {response.status_code}')
+        raise APIException(f'Неуспешный запрос к API: {error}')
 
 
 def check_response(response):
@@ -142,9 +143,9 @@ def main():
             send_message(bot, message)
             current_timestamp = response.get('current_date')
         except Exception as error:
+            logger.error(f'Сбой в работе программы: {error}')
             message = f'Сбой в работе программы: {error}'
             response = send_message(bot, message)
-            logger.error(f'Сбой в работе программы: {error}')
         finally:
             time.sleep(RETRY_TIME)
 
